@@ -1,4 +1,21 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Pixel Forge — Frontend
+
+Frontend de Pixel Forge, reconstruido con Next.js App Router, TypeScript y
+Tailwind CSS a partir de la identidad visual de la Entrega 1.
+
+## Configuración local
+
+Instala las dependencias y ejecuta el servidor:
+
+```bash
+npm install
+npm run dev
+```
+
+La aplicación queda disponible en [http://localhost:3000](http://localhost:3000).
+
+La URL de la API se configurará mediante `NEXT_PUBLIC_API_HOST` en los
+siguientes commits. No se deben guardar secretos en variables `NEXT_PUBLIC_*`.
 
 ## Getting Started
 
