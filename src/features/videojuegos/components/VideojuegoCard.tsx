@@ -1,9 +1,30 @@
 import Image from "next/image";
 import type { Videojuego } from "../domain/videojuego";
 
-export function VideojuegoCard({ juego }: { juego: Videojuego }) {
+export function VideojuegoCard({
+  juego,
+  onDetails,
+}: {
+  juego: Videojuego;
+  onDetails: (juego: Videojuego) => void;
+}) {
+  function openDetails() {
+    onDetails(juego);
+  }
+
   return (
-    <article className="group overflow-hidden rounded-2xl border border-slate-700 bg-slate-900/80 shadow-2xl shadow-slate-950/20 transition hover:-translate-y-1 hover:border-teal-300/70">
+    <article
+      className="group cursor-pointer overflow-hidden rounded-2xl border border-slate-700 bg-slate-900/80 shadow-2xl shadow-slate-950/20 transition hover:-translate-y-1 hover:border-teal-300/70"
+      onClick={openDetails}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          openDetails();
+        }
+      }}
+      role="button"
+      tabIndex={0}
+    >
       <div className="relative h-52 overflow-hidden bg-slate-800">
         <Image
           src={juego.imageUrl}
@@ -31,11 +52,22 @@ export function VideojuegoCard({ juego }: { juego: Videojuego }) {
           </p>
           <a
             href="#contacto"
+            onClick={(event) => event.stopPropagation()}
             className="rounded-full bg-teal-300 px-4 py-2 text-sm font-extrabold text-slate-950 transition hover:bg-teal-200"
           >
             Consultar
           </a>
         </div>
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            openDetails();
+          }}
+          className="w-full rounded-full border border-slate-600 px-4 py-2 text-sm font-extrabold text-slate-200 transition hover:border-teal-300 hover:text-teal-300"
+        >
+          Ver detalles
+        </button>
       </div>
     </article>
   );

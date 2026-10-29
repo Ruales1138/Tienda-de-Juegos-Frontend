@@ -1,12 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import Image from "next/image";
+import { useEffect, useMemo, useState } from "react";
 import { Pagination } from "./Pagination";
 import { SectionHeading } from "./SectionHeading";
 import { SolicitudForm } from "../../solicitudes/components/SolicitudForm";
 import { useVideojuegos } from "../../videojuegos/hooks/useVideojuegos";
 import { VideojuegoCard } from "../../videojuegos/components/VideojuegoCard";
 import { useAuth } from "../../../features/auth/hooks/useAuth";
+import type { Videojuego } from "../../videojuegos/domain/videojuego";
 
 const categories = ["todos", "aventura", "accion", "rol"] as const;
 
@@ -18,6 +20,7 @@ export function PixelForgeHome() {
     return Number.isInteger(value) && value > 0 ? value : 1;
   });
   const [category, setCategory] = useState<(typeof categories)[number]>("todos");
+  const [selectedGame, setSelectedGame] = useState<Videojuego | null>(null);
   const { data, loading, error } = useVideojuegos(page);
   const { user, logout } = useAuth();
 
@@ -39,6 +42,15 @@ export function PixelForgeHome() {
     setCategory(nextCategory);
     document.querySelector("#catalogo")?.scrollIntoView({ behavior: "smooth" });
   }
+
+  useEffect(() => {
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") setSelectedGame(null);
+    }
+
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#080d16] text-slate-100">
@@ -119,7 +131,7 @@ export function PixelForgeHome() {
                 ))}
               </div>
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {juegos.map((juego) => <VideojuegoCard key={juego.id} juego={juego} />)}
+                {juegos.map((juego) => <VideojuegoCard key={juego.id} juego={juego} onDetails={setSelectedGame} />)}
               </div>
               {data ? <Pagination page={data.pagination.page} totalPages={data.pagination.totalPages} onChange={changePage} /> : null}
             </>
@@ -144,6 +156,74 @@ export function PixelForgeHome() {
           <SolicitudForm juegos={data?.data ?? []} />
         </section>
       </main>
+
+      {selectedGame ? (
+        <div
+          className="fixed inset-0 z-30 grid place-items-center bg-slate-950/80 p-6 backdrop-blur-sm"
+          role="presentation"
+          onClick={() => setSelectedGame(null)}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="game-details-title"
+            className="grid max-h-[90vh] w-full max-w-3xl overflow-auto rounded-3xl border border-slate-700 bg-[#0f1725] shadow-2xl md:grid-cols-2"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="relative min-h-64 bg-slate-800">
+              <Image
+                src={selectedGame.imageUrl}
+                alt={selectedGame.imageAlt}
+                fill
+                sizes="(max-width: 768px) 100vw, 50vw"
+                className="object-cover"
+              />
+            </div>
+            <div className="space-y-5 p-7">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-teal-300">
+                    {selectedGame.categoryName}
+                  </p>
+                  <h2 id="game-details-title" className="mt-2 text-3xl font-black text-white">
+                    {selectedGame.name}
+                  </h2>
+                </div>
+                <button
+                  type="button"
+                  aria-label="Cerrar detalles"
+                  onClick={() => setSelectedGame(null)}
+                  className="rounded-full border border-slate-600 px-3 py-1 text-xl text-slate-300 hover:border-teal-300 hover:text-teal-300"
+                >
+                  ×
+                </button>
+              </div>
+              <p className="leading-7 text-slate-300">{selectedGame.description}</p>
+              <dl className="space-y-3 rounded-2xl border border-slate-700 bg-slate-900/70 p-4 text-sm">
+                <div className="flex justify-between gap-4">
+                  <dt className="text-slate-400">Plataformas</dt>
+                  <dd className="text-right font-bold text-slate-100">{selectedGame.platforms}</dd>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <dt className="text-slate-400">Categoría</dt>
+                  <dd className="font-bold text-slate-100">{selectedGame.categoryName}</dd>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <dt className="text-slate-400">Precio</dt>
+                  <dd className="font-black text-amber-300">${selectedGame.price.toLocaleString("es-CO")} COP</dd>
+                </div>
+              </dl>
+              <a
+                href="#contacto"
+                onClick={() => setSelectedGame(null)}
+                className="inline-block rounded-full bg-teal-300 px-5 py-3 font-extrabold text-slate-950 transition hover:bg-teal-200"
+              >
+                Consultar disponibilidad
+              </a>
+            </div>
+          </section>
+        </div>
+      ) : null}
 
       <footer className="border-t border-slate-800 bg-[#0b121f] px-6 py-8 text-center text-sm text-slate-400">
         © 2026 Pixel Forge. Tienda independiente de videojuegos.
