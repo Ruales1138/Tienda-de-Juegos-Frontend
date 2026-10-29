@@ -29,6 +29,15 @@ siguientes commits. No se deben guardar secretos en variables `NEXT_PUBLIC_*`.
 Para producción, configura `NEXT_PUBLIC_API_HOST` con la URL pública de la API
 antes de desplegar en Vercel. El backend debe permitir esa URL en `FRONTEND_URL`.
 
+El login envía las credenciales al backend, guarda el JWT en `localStorage` y
+lo agrega a cada petición protegida. Esto permite conservar la sesión al
+recargar, pero un ataque XSS podría robar el token; para producción con mayor
+exigencia se preferirían cookies `HttpOnly`.
+
+La URL pública de Vercel y la URL pública del backend deben agregarse aquí
+cuando se realice el despliegue. No se inventan enlaces de producción antes de
+tenerlos configurados.
+
 ## Getting Started
 
 First, run the development server:

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useMemo, useState } from "react";
+import { createContext, useContext, useMemo, useSyncExternalStore } from "react";
 import { HttpError } from "../../common/http";
 import { login as loginRequest, register as registerRequest } from "../services/auth-service";
 import type { User } from "../domain/auth";
@@ -18,20 +18,36 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-function readStoredUser(): User | null {
+function readStoredUserValue(): string | null {
   if (typeof window === "undefined") return null;
-  const stored = window.localStorage.getItem(USER_KEY);
+  return window.localStorage.getItem(USER_KEY);
+}
+
+function parseUser(stored: string | null): User | null {
   if (!stored) return null;
   try {
     return JSON.parse(stored) as User;
   } catch {
-    window.localStorage.removeItem(USER_KEY);
     return null;
   }
 }
 
+function subscribeToAuth(callback: () => void) {
+  window.addEventListener("pixel-forge-auth-change", callback);
+  window.addEventListener("storage", callback);
+  return () => {
+    window.removeEventListener("pixel-forge-auth-change", callback);
+    window.removeEventListener("storage", callback);
+  };
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(readStoredUser);
+  const storedUser = useSyncExternalStore(
+    subscribeToAuth,
+    readStoredUserValue,
+    () => null,
+  );
+  const user = parseUser(storedUser);
 
   const value = useMemo<AuthContextValue>(
     () => {
@@ -39,7 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const result = await loginRequest(email, password);
         window.localStorage.setItem(TOKEN_KEY, result.token);
         window.localStorage.setItem(USER_KEY, JSON.stringify(result.user));
-        setUser(result.user);
+        window.dispatchEvent(new Event("pixel-forge-auth-change"));
       };
       return {
         user,
@@ -52,7 +68,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         logout() {
         window.localStorage.removeItem(TOKEN_KEY);
         window.localStorage.removeItem(USER_KEY);
-        setUser(null);
+        window.dispatchEvent(new Event("pixel-forge-auth-change"));
         },
       };
     },
