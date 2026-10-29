@@ -6,6 +6,7 @@ import { SectionHeading } from "./SectionHeading";
 import { SolicitudForm } from "../../solicitudes/components/SolicitudForm";
 import { useVideojuegos } from "../../videojuegos/hooks/useVideojuegos";
 import { VideojuegoCard } from "../../videojuegos/components/VideojuegoCard";
+import { useAuth } from "../../../features/auth/hooks/useAuth";
 
 const categories = ["todos", "aventura", "accion", "rol"] as const;
 
@@ -18,6 +19,7 @@ export function PixelForgeHome() {
   });
   const [category, setCategory] = useState<(typeof categories)[number]>("todos");
   const { data, loading, error } = useVideojuegos(page);
+  const { user, logout } = useAuth();
 
   const juegos = useMemo(
     () =>
@@ -60,6 +62,9 @@ export function PixelForgeHome() {
             <a href="#catalogo" className="font-bold text-slate-200 hover:text-teal-300" onClick={() => setMenuOpen(false)}>Catálogo</a>
             <a href="#categorias" className="font-bold text-slate-200 hover:text-teal-300" onClick={() => setMenuOpen(false)}>Categorías</a>
             <a href="#contacto" className="font-bold text-slate-200 hover:text-teal-300" onClick={() => setMenuOpen(false)}>Contacto</a>
+            {user ? <a href="/mis-solicitudes" className="font-bold text-slate-200 hover:text-teal-300">Mis solicitudes</a> : <a href="/login" className="font-bold text-slate-200 hover:text-teal-300">Ingresar</a>}
+            {user?.role === "ADMIN" ? <a href="/admin" className="font-bold text-amber-300 hover:text-amber-200">Administración</a> : null}
+            {user ? <button type="button" onClick={logout} className="text-left font-bold text-coral hover:text-orange-300">Salir ({user.name})</button> : null}
           </div>
         </nav>
       </header>

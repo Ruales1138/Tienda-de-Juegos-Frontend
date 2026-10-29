@@ -2,18 +2,33 @@
 
 import { useState } from "react";
 import type { Videojuego } from "../../videojuegos/domain/videojuego";
+import { createSolicitud } from "../services/solicitud-service";
+import { useAuth } from "../../auth/hooks/useAuth";
 
 export function SolicitudForm({ juegos }: { juegos: Videojuego[] }) {
   const [status, setStatus] = useState("");
+  const { user } = useAuth();
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
     if (!form.checkValidity()) {
       form.reportValidity();
       return;
     }
-    setStatus("Tu consulta está lista. Inicia sesión para enviarla.");
+    if (!user) {
+      setStatus("Inicia sesión para enviar tu consulta.");
+      return;
+    }
+    const formData = new FormData(form);
+    setStatus("");
+    try {
+      await createSolicitud(String(formData.get("videojuego")), String(formData.get("message")));
+      setStatus("Tu consulta fue enviada correctamente.");
+      form.reset();
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "No se pudo enviar la consulta.");
+    }
   }
 
   return (

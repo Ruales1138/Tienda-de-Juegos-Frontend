@@ -17,6 +17,18 @@ La aplicación queda disponible en [http://localhost:3000](http://localhost:3000
 La URL de la API se configurará mediante `NEXT_PUBLIC_API_HOST` en los
 siguientes commits. No se deben guardar secretos en variables `NEXT_PUBLIC_*`.
 
+## Funcionalidades
+
+- Catálogo conectado a la API con filtros, estados de carga/error/vacío y
+  paginación mediante `?page=2`.
+- Registro, login, logout y sesión persistente en el navegador.
+- Solicitudes autenticadas en `/mis-solicitudes`.
+- Vista administrativa en `/admin` para usuarios con rol `ADMIN`.
+- Página propia para rutas inexistentes.
+
+Para producción, configura `NEXT_PUBLIC_API_HOST` con la URL pública de la API
+antes de desplegar en Vercel. El backend debe permitir esa URL en `FRONTEND_URL`.
+
 ## Getting Started
 
 First, run the development server:
