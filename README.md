@@ -3,6 +3,12 @@
 Frontend de Pixel Forge, reconstruido con Next.js App Router, TypeScript y
 Tailwind CSS a partir de la identidad visual de la Entrega 1.
 
+## Despliegues
+
+- Frontend en Vercel: https://tienda-de-juegos-frontend-c9y4.vercel.app
+- API en Render: https://pixel-forge-api-333z.onrender.com
+- Catálogo de la API: https://pixel-forge-api-333z.onrender.com/api/videojuegos
+
 ## Configuración local
 
 Instala las dependencias y ejecuta el servidor:
@@ -34,9 +40,14 @@ lo agrega a cada petición protegida. Esto permite conservar la sesión al
 recargar, pero un ataque XSS podría robar el token; para producción con mayor
 exigencia se preferirían cookies `HttpOnly`.
 
-La URL pública de Vercel y la URL pública del backend deben agregarse aquí
-cuando se realice el despliegue. No se inventan enlaces de producción antes de
-tenerlos configurados.
+En producción, el frontend usa:
+
+```text
+NEXT_PUBLIC_API_HOST=https://pixel-forge-api-333z.onrender.com/api
+```
+
+El backend debe permitir la URL de Vercel en `FRONTEND_URL`. No se deben
+guardar secretos en el repositorio ni en variables `NEXT_PUBLIC_*`.
 
 ## Getting Started
 
