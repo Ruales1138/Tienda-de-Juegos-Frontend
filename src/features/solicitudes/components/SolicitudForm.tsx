@@ -86,7 +86,7 @@ export function SolicitudForm({ juegos }: { juegos: Videojuego[] }) {
           type="submit"
           className="rounded-full bg-coral px-6 py-3 font-extrabold text-slate-950 transition hover:bg-orange-300"
         >
-          Preparar consulta
+          Enviar consulta
         </button>
         {status ? (
           <p role="status" className="text-sm font-bold text-teal-300">
