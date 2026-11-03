@@ -4,9 +4,11 @@ import type { Videojuego } from "../domain/videojuego";
 export function VideojuegoCard({
   juego,
   onDetails,
+  onAddToCart,
 }: {
   juego: Videojuego;
   onDetails: (juego: Videojuego) => void;
+  onAddToCart: (juego: Videojuego) => void;
 }) {
   function openDetails() {
     onDetails(juego);
@@ -50,13 +52,16 @@ export function VideojuegoCard({
           <p className="text-lg font-black text-amber-300">
             ${juego.price.toLocaleString("es-CO")} COP
           </p>
-          <a
-            href="#contacto"
-            onClick={(event) => event.stopPropagation()}
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              onAddToCart(juego);
+            }}
             className="rounded-full bg-teal-300 px-4 py-2 text-sm font-extrabold text-slate-950 transition hover:bg-teal-200"
           >
-            Consultar
-          </a>
+            Agregar al carrito
+          </button>
         </div>
         <button
           type="button"

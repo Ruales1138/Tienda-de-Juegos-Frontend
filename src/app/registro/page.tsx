@@ -2,14 +2,16 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { AuthForm } from "@/features/auth/components/AuthForm";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 
 export default function RegisterPage() {
   const { user } = useAuth();
+  const router = useRouter();
   useEffect(() => {
-    if (user) window.location.replace("/");
-  }, [user]);
+    if (user) router.replace("/");
+  }, [router, user]);
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#080d16] px-6 text-slate-100">
       <section className="w-full max-w-md rounded-3xl border border-slate-700 bg-slate-900 p-8">

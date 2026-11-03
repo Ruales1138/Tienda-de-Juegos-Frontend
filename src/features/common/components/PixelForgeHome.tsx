@@ -1,19 +1,24 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { Pagination } from "./Pagination";
 import { SectionHeading } from "./SectionHeading";
-import { SolicitudForm } from "../../solicitudes/components/SolicitudForm";
+import { Cart } from "../../solicitudes/components/Cart";
 import { useVideojuegos } from "../../videojuegos/hooks/useVideojuegos";
 import { VideojuegoCard } from "../../videojuegos/components/VideojuegoCard";
 import { useAuth } from "../../../features/auth/hooks/useAuth";
+import { getStoredAvatar, subscribeToAvatar } from "../../../features/auth/profile-avatar";
 import type { Videojuego } from "../../videojuegos/domain/videojuego";
 
 const categories = ["todos", "aventura", "accion", "rol"] as const;
 
-export function PixelForgeHome() {
+export function PixelForgeHome({ view = "home" }: { view?: "home" | "catalog" }) {
+  const isCatalogView = view === "catalog";
   const [menuOpen, setMenuOpen] = useState(false);
+  const [sideMenuOpen, setSideMenuOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [page, setPage] = useState(() => {
     if (typeof window === "undefined") return 1;
     const value = Number(new URLSearchParams(window.location.search).get("page"));
@@ -21,6 +26,8 @@ export function PixelForgeHome() {
   });
   const [category, setCategory] = useState<(typeof categories)[number]>("todos");
   const [selectedGame, setSelectedGame] = useState<Videojuego | null>(null);
+  const [cart, setCart] = useState<Videojuego[]>([]);
+  const avatar = useSyncExternalStore(subscribeToAvatar, getStoredAvatar, () => null);
   const { data, loading, error } = useVideojuegos(page);
   const { user, logout } = useAuth();
 
@@ -41,6 +48,14 @@ export function PixelForgeHome() {
   function selectCategory(nextCategory: (typeof categories)[number]) {
     setCategory(nextCategory);
     document.querySelector("#catalogo")?.scrollIntoView({ behavior: "smooth" });
+  }
+
+  function addToCart(juego: Videojuego) {
+    setCart((items) =>
+      items.some((item) => item.id === juego.id) ? items : [...items, juego],
+    );
+    setSelectedGame(null);
+    setSideMenuOpen(true);
   }
 
   useEffect(() => {
@@ -68,21 +83,65 @@ export function PixelForgeHome() {
             Menú
           </button>
           <div
-            className={`${menuOpen ? "flex" : "hidden"} absolute left-0 top-full w-full flex-col gap-4 border-b border-slate-800 bg-[#0b121f] px-6 py-5 md:static md:flex md:w-auto md:flex-row md:border-0 md:bg-transparent md:p-0`}
+            className={`${menuOpen ? "flex" : "hidden"} absolute left-0 top-full w-full flex-col gap-4 border-b border-slate-800 bg-[#0b121f] px-6 py-5 md:static md:flex md:w-auto md:flex-row md:items-center md:border-0 md:bg-transparent md:p-0`}
           >
-            <a href="#inicio" className="font-bold text-slate-200 hover:text-teal-300" onClick={() => setMenuOpen(false)}>Inicio</a>
-            <a href="#catalogo" className="font-bold text-slate-200 hover:text-teal-300" onClick={() => setMenuOpen(false)}>Catálogo</a>
-            <a href="#categorias" className="font-bold text-slate-200 hover:text-teal-300" onClick={() => setMenuOpen(false)}>Categorías</a>
-            <a href="#contacto" className="font-bold text-slate-200 hover:text-teal-300" onClick={() => setMenuOpen(false)}>Contacto</a>
-            {user ? <a href="/mis-solicitudes" className="font-bold text-slate-200 hover:text-teal-300">Mis solicitudes</a> : <a href="/login" className="font-bold text-slate-200 hover:text-teal-300">Ingresar</a>}
-            {user?.role === "ADMIN" ? <a href="/admin" className="font-bold text-amber-300 hover:text-amber-200">Administración</a> : null}
-            {user ? <button type="button" onClick={logout} className="text-left font-bold text-coral hover:text-orange-300">Salir ({user.name})</button> : null}
+            <Link href="/" className="font-bold text-slate-200 hover:text-teal-300" onClick={() => setMenuOpen(false)}>Inicio</Link>
+            <Link href="/catalogo" className="font-bold text-slate-200 hover:text-teal-300" onClick={() => setMenuOpen(false)}>Catálogo</Link>
+            <div className="flex flex-col gap-4 md:ml-auto md:flex-row md:items-center">
+              <button
+                type="button"
+                aria-label={`Abrir carrito (${cart.length} productos)`}
+                aria-expanded={sideMenuOpen}
+                onClick={() => setSideMenuOpen(true)}
+                className="rounded-full border border-slate-600 px-3 py-1 text-sm font-bold text-slate-200 hover:border-teal-300 hover:text-teal-300"
+              >
+                🛒 {cart.length}
+              </button>
+              {user ? (
+                <div className="relative">
+                  <button
+                    type="button"
+                    aria-label="Abrir menú de perfil"
+                    aria-expanded={profileOpen}
+                    onClick={() => setProfileOpen((open) => !open)}
+                    className="h-11 w-11 overflow-hidden rounded-full border-2 border-teal-300 bg-slate-900 transition hover:border-amber-300"
+                  >
+                    <Image
+                      src={avatar ?? "/profile-avatar.svg"}
+                      alt="Avatar del perfil"
+                      width={44}
+                      height={44}
+                      className="h-full w-full object-cover"
+                    />
+                  </button>
+                  {profileOpen ? (
+                    <div className="absolute right-0 top-14 z-30 w-64 rounded-2xl border border-slate-700 bg-[#0f1725] p-4 shadow-2xl">
+                      <p className="font-black text-white">{user.name}</p>
+                      <p className="mt-1 truncate text-sm text-slate-400">{user.email}</p>
+                      <div className="mt-4 grid gap-2 border-t border-slate-700 pt-4">
+                        <a href="/mis-solicitudes" onClick={() => setProfileOpen(false)} className="rounded-xl px-3 py-2 font-bold text-slate-200 hover:bg-slate-800 hover:text-teal-300">Mis solicitudes</a>
+                        <Link href="/perfil" onClick={() => setProfileOpen(false)} className="rounded-xl px-3 py-2 font-bold text-slate-200 hover:bg-slate-800 hover:text-teal-300">Ver perfil</Link>
+                        {user.role === "ADMIN" ? <a href="/admin" onClick={() => setProfileOpen(false)} className="rounded-xl px-3 py-2 font-bold text-amber-300 hover:bg-slate-800">Administración</a> : null}
+                        <button type="button" onClick={logout} className="rounded-xl px-3 py-2 text-left font-bold text-coral hover:bg-slate-800">Cerrar sesión</button>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              ) : <a href="/login" className="font-bold text-slate-200 hover:text-teal-300">Ingresar</a>}
+            </div>
           </div>
         </nav>
       </header>
 
       <main>
-        <section id="inicio" className="relative overflow-hidden border-b border-slate-800 bg-[radial-gradient(circle_at_15%_20%,rgba(37,208,177,0.18),transparent_35%),linear-gradient(120deg,#101827,#152e63)] px-6 py-28 sm:py-36">
+        {!isCatalogView ? <section
+          id="inicio"
+          className="relative overflow-hidden border-b border-slate-800 bg-cover bg-center px-6 py-28 sm:py-36"
+          style={{
+            backgroundImage:
+              "linear-gradient(90deg, rgba(8, 13, 22, 0.94), rgba(8, 13, 22, 0.62)), url('/pixel-forge-background.png')",
+          }}
+        >
           <div className="relative mx-auto max-w-6xl">
             <p className="mb-5 text-xs font-extrabold uppercase tracking-[0.25em] text-teal-300">
               Tienda independiente de videojuegos
@@ -94,13 +153,13 @@ export function PixelForgeHome() {
               Explora una selección de videojuegos para diferentes plataformas y
               descubre nuevas experiencias para jugar.
             </p>
-            <a href="#catalogo" className="mt-8 inline-block rounded-full bg-teal-300 px-6 py-3 font-extrabold text-slate-950 transition hover:bg-teal-200">
+            <Link href="/catalogo" className="mt-8 inline-block rounded-full bg-teal-300 px-6 py-3 font-extrabold text-slate-950 transition hover:bg-teal-200">
               Ver catálogo
-            </a>
+            </Link>
           </div>
-        </section>
+        </section> : null}
 
-        <section id="catalogo" className="mx-auto max-w-6xl px-6 py-20">
+        {isCatalogView ? <section id="catalogo" className="mx-auto max-w-6xl px-6 py-20">
           <SectionHeading
             eyebrow="Descubre"
             title="Catálogo destacado"
@@ -131,31 +190,50 @@ export function PixelForgeHome() {
                 ))}
               </div>
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {juegos.map((juego) => <VideojuegoCard key={juego.id} juego={juego} onDetails={setSelectedGame} />)}
+                {juegos.map((juego) => <VideojuegoCard key={juego.id} juego={juego} onDetails={setSelectedGame} onAddToCart={addToCart} />)}
               </div>
               {data ? <Pagination page={data.pagination.page} totalPages={data.pagination.totalPages} onChange={changePage} /> : null}
             </>
           )}
-        </section>
+        </section> : null}
 
-        <section id="categorias" className="border-y border-slate-800 bg-[#0f1725] px-6 py-20">
-          <div className="mx-auto max-w-6xl">
-            <SectionHeading eyebrow="Elige tu estilo" title="Categorías para cada jugador" />
-            <div className="grid gap-4 sm:grid-cols-3">
-              {categories.slice(1).map((item) => (
-                <button key={item} type="button" onClick={() => selectCategory(item)} className="rounded-2xl border border-slate-700 bg-slate-900 p-6 text-left font-black capitalize text-white transition hover:border-teal-300 hover:text-teal-300">
-                  {item}
-                </button>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section id="contacto" className="mx-auto max-w-3xl px-6 py-20">
-          <SectionHeading eyebrow="Hablemos" title="Contáctanos" description="Escríbenos para consultar disponibilidad o solicitar una reserva." />
-          <SolicitudForm juegos={data?.data ?? []} />
-        </section>
       </main>
+
+      {sideMenuOpen ? (
+        <div className="fixed inset-0 z-40 bg-slate-950/70" role="presentation" onClick={() => setSideMenuOpen(false)}>
+          <aside
+            className="absolute right-0 top-0 h-full w-full max-w-sm border-l border-slate-700 bg-[#0f1725] p-6 shadow-2xl"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="side-cart-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <h2 id="side-cart-title" className="text-2xl font-black text-white">Carrito</h2>
+              <button
+                type="button"
+                aria-label="Cerrar menú lateral"
+                onClick={() => setSideMenuOpen(false)}
+                className="rounded-full border border-slate-600 px-3 py-1 text-xl text-slate-300 hover:border-teal-300 hover:text-teal-300"
+              >
+                ×
+              </button>
+            </div>
+            <div className="mt-8">
+              <h3 className="mb-4 text-lg font-black text-teal-300">
+                Productos ({cart.length})
+              </h3>
+              <Cart
+                items={cart}
+                onRemove={(id) =>
+                  setCart((items) => items.filter((item) => item.id !== id))
+                }
+                onClear={() => setCart([])}
+              />
+            </div>
+          </aside>
+        </div>
+      ) : null}
 
       {selectedGame ? (
         <div
@@ -214,11 +292,14 @@ export function PixelForgeHome() {
                 </div>
               </dl>
               <a
-                href="#contacto"
-                onClick={() => setSelectedGame(null)}
+                href="#carrito"
+                onClick={(event) => {
+                  event.preventDefault();
+                  addToCart(selectedGame);
+                }}
                 className="inline-block rounded-full bg-teal-300 px-5 py-3 font-extrabold text-slate-950 transition hover:bg-teal-200"
               >
-                Consultar disponibilidad
+                Agregar al carrito
               </a>
             </div>
           </section>

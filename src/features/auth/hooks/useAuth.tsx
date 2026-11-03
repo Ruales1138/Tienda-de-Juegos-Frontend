@@ -1,9 +1,18 @@
 "use client";
 
-import { createContext, useContext, useMemo, useSyncExternalStore } from "react";
+import {
+  createContext,
+  useContext,
+  useMemo,
+  useSyncExternalStore,
+} from "react";
 import { HttpError } from "../../common/http";
-import { login as loginRequest, register as registerRequest } from "../services/auth-service";
-import type { User } from "../domain/auth";
+import {
+  login as loginRequest,
+  register as registerRequest,
+  updateProfile as updateProfileRequest,
+} from "../services/auth-service";
+import type { User, UserRole } from "../domain/auth";
 
 const TOKEN_KEY = "pixel-forge-token";
 const USER_KEY = "pixel-forge-user";
@@ -11,8 +20,9 @@ const USER_KEY = "pixel-forge-user";
 type AuthContextValue = {
   user: User | null;
   ready: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, role: UserRole) => Promise<void>;
+  register: (name: string, email: string, password: string, role: UserRole) => Promise<void>;
+  updateProfile: (name: string) => Promise<void>;
   logout: () => void;
 };
 
@@ -20,6 +30,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 function readStoredUserValue(): string | null {
   if (typeof window === "undefined") return null;
+  if (!window.localStorage.getItem(TOKEN_KEY)) return null;
   return window.localStorage.getItem(USER_KEY);
 }
 
@@ -41,7 +52,16 @@ function subscribeToAuth(callback: () => void) {
   };
 }
 
+function subscribeToHydration() {
+  return () => {};
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const ready = useSyncExternalStore(
+    subscribeToHydration,
+    () => true,
+    () => false,
+  );
   const storedUser = useSyncExternalStore(
     subscribeToAuth,
     readStoredUserValue,
@@ -51,19 +71,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<AuthContextValue>(
     () => {
-      const login = async (email: string, password: string) => {
-        const result = await loginRequest(email, password);
+      const login = async (email: string, password: string, role: UserRole) => {
+        const result = await loginRequest(email, password, role);
         window.localStorage.setItem(TOKEN_KEY, result.token);
         window.localStorage.setItem(USER_KEY, JSON.stringify(result.user));
         window.dispatchEvent(new Event("pixel-forge-auth-change"));
       };
       return {
         user,
-        ready: true,
+        ready,
         login,
-        async register(name, email, password) {
-        await registerRequest({ name, email, password });
-        await login(email, password);
+        async register(name, email, password, role) {
+        await registerRequest({ name, email, password, role });
+        await login(email, password, role);
+        },
+        async updateProfile(name) {
+          const result = await updateProfileRequest({ name });
+          window.localStorage.setItem(USER_KEY, JSON.stringify(result.user));
+          window.dispatchEvent(new Event("pixel-forge-auth-change"));
         },
         logout() {
         window.localStorage.removeItem(TOKEN_KEY);
@@ -72,7 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         },
       };
     },
-    [user],
+    [ready, user],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

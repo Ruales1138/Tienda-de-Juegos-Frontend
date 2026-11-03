@@ -28,6 +28,7 @@ export async function http<T>(path: string, init?: RequestInit): Promise<T> {
     if (response.status === 401 && typeof window !== "undefined") {
       window.localStorage.removeItem("pixel-forge-token");
       window.localStorage.removeItem("pixel-forge-user");
+      window.dispatchEvent(new Event("pixel-forge-auth-change"));
       if (!window.location.pathname.startsWith("/login")) {
         window.location.replace("/login");
       }

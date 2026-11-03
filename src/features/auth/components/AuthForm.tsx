@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../hooks/useAuth";
+import type { UserRole } from "../domain/auth";
 
 type AuthFormProps = {
   mode: "login" | "register";
@@ -11,6 +12,7 @@ type AuthFormProps = {
 export function AuthForm({ mode }: AuthFormProps) {
   const { login, register } = useAuth();
   const router = useRouter();
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [pending, setPending] = useState(false);
@@ -21,17 +23,19 @@ export function AuthForm({ mode }: AuthFormProps) {
     setFieldErrors({});
     setPending(true);
     const form = new FormData(event.currentTarget);
+    const role = String(form.get("role")) as UserRole;
     try {
       if (mode === "login") {
-        await login(String(form.get("email")), String(form.get("password")));
+        await login(String(form.get("email")), String(form.get("password")), role);
       } else {
         await register(
           String(form.get("name")),
           String(form.get("email")),
           String(form.get("password")),
+          role,
         );
       }
-      router.push("/");
+      router.replace("/");
     } catch (reason) {
       const message = reason instanceof Error ? reason.message : "No se pudo completar la operación.";
       setError(message);
@@ -60,8 +64,33 @@ export function AuthForm({ mode }: AuthFormProps) {
       </label>
       <label className="grid gap-2 text-sm font-bold text-slate-200">
         Contraseña
-        <input name="password" type="password" required minLength={8} aria-invalid={Boolean(fieldErrors.password)} aria-describedby="password-error" className="rounded-xl border border-slate-600 bg-slate-950 px-4 py-3 font-normal text-white outline-none focus:border-teal-300" />
+        <span className="relative">
+          <input
+            name="password"
+            type={showPassword ? "text" : "password"}
+            required
+            minLength={8}
+            aria-invalid={Boolean(fieldErrors.password)}
+            aria-describedby="password-error"
+            className="w-full rounded-xl border border-slate-600 bg-slate-950 px-4 py-3 pr-12 font-normal text-white outline-none focus:border-teal-300"
+          />
+          <button
+            type="button"
+            aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+            onClick={() => setShowPassword((visible) => !visible)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-teal-300"
+          >
+            {showPassword ? "◉" : "◌"}
+          </button>
+        </span>
         {fieldErrors.password ? <small id="password-error" className="text-red-300">{fieldErrors.password}</small> : null}
+      </label>
+      <label className="grid gap-2 text-sm font-bold text-slate-200">
+        Rol
+        <select name="role" defaultValue="USER" className="rounded-xl border border-slate-600 bg-slate-950 px-4 py-3 font-normal text-white outline-none focus:border-teal-300">
+          <option value="USER">Usuario</option>
+          <option value="ADMIN">Administrador</option>
+        </select>
       </label>
       {error ? <p role="alert" className="text-sm font-bold text-red-300">{error}</p> : null}
       <button disabled={pending} className="rounded-full bg-teal-300 px-6 py-3 font-extrabold text-slate-950 disabled:opacity-50">
